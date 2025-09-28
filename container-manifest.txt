@@ -1,0 +1,9 @@
+https://raw.githubusercontent.com/cragr/quadstack/refs/heads/main/quadlets/npmplus.container
+https://raw.githubusercontent.com/cragr/quadstack/refs/heads/main/quadlets/heimdall.container
+https://raw.githubusercontent.com/cragr/quadstack/refs/heads/main/quadlets/postgresql.container
+https://raw.githubusercontent.com/cragr/quadstack/refs/heads/main/quadlets/pgadmin.container
+https://raw.githubusercontent.com/cragr/quadstack/refs/heads/main/quadlets/cloudflared.container
+https://raw.githubusercontent.com/cragr/quadstack/refs/heads/main/quadlets/keycloak.container
+https://raw.githubusercontent.com/cragr/quadstack/refs/heads/main/quadlets/pwpush.container
+https://raw.githubusercontent.com/cragr/quadstack/refs/heads/main/quadlets/guacd.container
+https://raw.githubusercontent.com/cragr/quadstack/refs/heads/main/quadlets/guacamole.container

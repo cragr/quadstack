@@ -1,0 +1,37 @@
+[Container]
+ContainerName=keycloak
+Image=quay.io/keycloak/keycloak:26.3.5
+Network=appnet
+
+# Persist Keycloak data (sessions, themes, etc. still rely on DB for canonical state)
+Volume={{INSTALL_DIR}}/keycloak/data:/opt/keycloak/data:Z,U
+
+# Reverse proxy & hostname (required when running behind Cloudflare/any proxy)
+Environment=KC_PROXY_HEADERS=xforwarded
+Environment=KC_HOSTNAME={{KEYCLOAK_URL}}
+Environment=KC_HTTP_ENABLED=true
+Environment=KC_HOSTNAME_STRICT=false
+
+# RequiresPostgres:
+# Database (PostgreSQL)
+Environment=KC_DB=postgres
+Environment=KC_DB_URL_HOST=postgresql
+Environment=KC_DB_URL_PORT=5432
+Environment=KC_DB_URL_DATABASE={{KEYCLOAK_DB_NAME}}
+Environment=KC_DB_USERNAME={{KEYCLOAK_DB_USERNAME}}
+Environment=KC_DB_PASSWORD={{KEYCLOAK_DB_PASSWORD}}
+
+
+# Bootstrap admin on first start
+Environment=KEYCLOAK_ADMIN={{KEYCLOAK_INITIAL_USERNAME}}
+Environment=KEYCLOAK_ADMIN_PASSWORD={{KEYCLOAK_INITIAL_PASSWORD}}
+
+# Start with explicit flags (recommended)
+Exec=start --http-enabled=true
+
+[Service]
+Restart=always
+TimeoutStartSec=900
+
+[Install]
+WantedBy=default.target

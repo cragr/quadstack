@@ -1,0 +1,37 @@
+[Container]
+ContainerName=guacamole
+Image=docker.io/guacamole/guacamole:1.6.0
+Volume={{INSTALL_DIR}}/guacamole:/etc/guacamole:Z,U
+
+# Point Guacamole at the guacd container by name (same default podman network)
+Environment=GUACD_HOSTNAME=guacd
+
+# Enable TOTP in Guacamole
+#Environment=TOTP_ENABLED=true
+Environment=OPENID_ENABLED=true
+
+# Enable postgresql
+Environment=POSTGRESQL_ENABLED=true
+
+# RequiresPostgres: db=guacamole_db user=guacamole_user
+# PostgresInit: https://raw.githubusercontent.com/cragr/quadstack/refs/heads/dev/initdb.sql
+Environment=POSTGRESQL_HOSTNAME=postgresql
+Environment=POSTGRESQL_DATABASE=guacamole_db
+Environment=POSTGRESQL_USERNAME=guacamole_user
+Environment=POSTGRESQL_PASSWORD={{GUACAMOLE_DB_PASSWORD}}
+Environment=WEBAPP_CONTEXT=ROOT
+Environment=REMOTE_IP_VALVE_ENABLED=true
+
+Environment=OPENID_AUTHORIZATION_ENDPOINT=https://{{KEYCLOAK_URL}}/realms/{{REALM}}/protocol/openid-connect/auth
+Environment=OPENID_JWKS_ENDPOINT=https://{{KEYCLOAK_URL}}/realms/{{REALM}}/protocol/openid-connect/certs
+Environment=OPENID_ISSUER=https://{{KEYCLOAK_URL}}/realms/{{REALM}}
+Environment=OPENID_CLIENT_ID=guacamole
+Environment=OPENID_REDIRECT_URI=https://{{GUACAMOLE_URL}}
+
+Network=appnet
+
+[Service]
+Restart=always
+
+[Install]
+WantedBy=default.target

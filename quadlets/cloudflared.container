@@ -1,0 +1,13 @@
+[Container]
+ContainerName=cloudflared
+Image=docker.io/cloudflare/cloudflared:latest
+Network=appnet
+
+Exec=tunnel run --token {{TUNNEL_TOKEN}}
+
+[Service]
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=default.target
