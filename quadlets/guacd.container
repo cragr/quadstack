@@ -1,6 +1,11 @@
+[Unit]
+Description=guacd container
+After=network-online.target
+Wants=network-online.target
+
 [Container]
 ContainerName=guacd
-Image=docker.io/guacamole/guacd:latest
+Image=docker.io/guacamole/guacd:1.6.0
 Volume={{INSTALL_DIR}}/guacd:/etc/guacamole:Z,U
 
 Network=appnet

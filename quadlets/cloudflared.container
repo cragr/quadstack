@@ -1,3 +1,8 @@
+[Unit]
+Description=Cloudflared container
+After=network-online.target
+Wants=network-online.target
+
 [Container]
 ContainerName=cloudflared
 Image=docker.io/cloudflare/cloudflared:latest
