@@ -1,3 +1,5 @@
+![logo](https://github.com/cragr/quadstack-docs/blob/main/images/quadstack-logo-250-250.png)
+
 # QuadStack
 
 > Minimal, interactive **Quadlet/Podman** installer for CentOS Stream — pick services from a manifest, inject variables, wire volumes, ensure networking, and start+enable systemd units. No git, no Ansible, just **bash + curl + podman**.
