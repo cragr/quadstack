@@ -164,6 +164,13 @@ When you select Guacamole, QuadStack also adds a one-shot `guacamole-db-init.ser
 3. Append its raw URL (or local path) to `container-manifest.txt`.
 4. Run QuadStack and select it.
 
+### Reload systemd after Quadlet updates
+
+Whenever you edit existing Quadlet files, reload systemd so the new dependencies are applied.
+
+- System services: `sudo systemctl daemon-reload`
+- Rootless services: `systemctl --user daemon-reload`
+
 ---
 
 ## Troubleshooting
