@@ -6,9 +6,11 @@ Wants=network-online.target
 [Container]
 ContainerName=heimdall
 Image=lscr.io/linuxserver/heimdall:latest
-Environment=TZ=America/New_York
-Volume={{INSTALL_DIR}}/heimdall/config:/config:Z,U
 Network=appnet
+
+Volume={{INSTALL_DIR}}/heimdall/config:/config:Z,U
+
+Environment=TZ=America/New_York
 
 [Service]
 Restart=always

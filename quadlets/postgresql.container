@@ -6,10 +6,11 @@ Wants=network-online.target
 [Container]
 ContainerName=postgresql
 Image=quay.io/sclorg/postgresql-16-c10s:latest
-Volume={{INSTALL_DIR}}/postgresql/data:/var/lib/pgsql/data:Z,U
-PublishPort=5432:5432
-
 Network=appnet
+
+Volume={{INSTALL_DIR}}/postgresql/data:/var/lib/pgsql/data:Z,U
+
+PublishPort=5432:5432
 
 Environment=POSTGRESQL_USER=admin
 Environment=POSTGRESQL_PASSWORD={{POSTGRESQL_PASSWORD}}

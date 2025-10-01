@@ -7,6 +7,8 @@ Wants=network-online.target
 [Container]
 ContainerName=guacamole
 Image=docker.io/guacamole/guacamole:1.6.0
+Network=appnet
+
 Volume={{INSTALL_DIR}}/guacamole:/etc/guacamole:Z,U
 
 # Point Guacamole at the guacd container by name (same default podman network)
@@ -34,7 +36,7 @@ Environment=OPENID_ISSUER=https://{{KEYCLOAK_URL}}/realms/{{REALM}}
 Environment=OPENID_CLIENT_ID=guacamole
 Environment=OPENID_REDIRECT_URI=https://{{GUACAMOLE_URL}}
 
-Network=appnet
+
 
 [Service]
 Restart=always

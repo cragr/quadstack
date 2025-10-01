@@ -7,8 +7,9 @@ Wants=network-online.target
 [Container]
 ContainerName=pwpush
 Image=docker.io/pglombardo/pwpush:latest
-Volume={{INSTALL_DIR}}/pwpush/storage:/opt/PasswordPusher/storage:Z,U
 Network=appnet
+
+Volume={{INSTALL_DIR}}/pwpush/storage:/opt/PasswordPusher/storage:Z,U
 
 # RequiresPostgres:
 Environment=DATABASE_URL=postgresql://{{PWPUSH_DB_USER}}:{{PWPUSH_DB_PASSWORD}}@postgresql:5432/{{PWPASS_DB_NAME}}
