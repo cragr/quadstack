@@ -1,0 +1,32 @@
+[Unit]
+Description=n8n container
+Requires=postgresql.service
+After=postgresql.service network-online.target
+Wants=network-online.target
+
+[Container]
+ContainerName=n8n
+Image=docker.n8n.io/n8nio/n8n
+Network=appnet
+
+# Persist n8n data
+Volume={{INSTALL_DIR}}/n8n:/home/node/.n8n:Z,U
+
+# n8n specfic EVs
+Environment=N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=true
+Environment=N8N_RUNNERS_ENABLED=true
+
+# RequiresPostgres:
+# Database (PostgreSQL)
+Environment=DB_TYPE=postgresdb
+Environment=DB_POSTGRESDB_HOST=postgresql
+Environment=DB_POSTGRESDB_DATABASE={{N8N_DB_NAME}}
+Environment=DB_POSTGRESDB_USER={{N8N_DB_USERNAME}}
+Environment=DB_POSTGRESDB_PASSWORD={{N8N_DB_PASSWORD}}
+
+[Service]
+Restart=always
+TimeoutStartSec=900
+
+[Install]
+WantedBy=default.target
