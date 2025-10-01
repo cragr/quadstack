@@ -7,3 +7,4 @@ https://raw.githubusercontent.com/cragr/quadstack/refs/heads/main/quadlets/keycl
 https://raw.githubusercontent.com/cragr/quadstack/refs/heads/main/quadlets/pwpush.container
 https://raw.githubusercontent.com/cragr/quadstack/refs/heads/main/quadlets/guacd.container
 https://raw.githubusercontent.com/cragr/quadstack/refs/heads/main/quadlets/guacamole.container
+https://raw.githubusercontent.com/cragr/quadstack/refs/heads/main/quadlets/n8n.container
