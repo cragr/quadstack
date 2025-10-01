@@ -1,7 +1,7 @@
 [Unit]
 Description=n8n container
-Requires=container-postgresql.service
-After=container-postgresql.service network-online.target
+Requires=postgresql.service
+After=postgresql.service network-online.target
 Wants=network-online.target
 
 [Container]
