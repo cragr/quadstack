@@ -3,7 +3,7 @@ set -euo pipefail
 
 # --- Defaults ---------------------------------------------------------------
 DEFAULT_INSTALL_DIR="/opt/containers"
-DEFAULT_MANIFEST_URL="https://raw.githubusercontent.com/cragr/quadstack/refs/heads/main/container-manifest.txt"
+DEFAULT_MANIFEST_URL="https://raw.githubusercontent.com/cragr/quadstack/refs/heads/n8n/container-manifest.txt"
 
 # Podman network to ensure at the beginning of the run
 APPNET_NAME="${APPNET_NAME:-appnet}"
@@ -12,7 +12,7 @@ APPNET_NAME="${APPNET_NAME:-appnet}"
 PG_CONTAINER_NAME="${PG_CONTAINER_NAME:-postgresql}"
 
 # Default Guacamole init SQL (override with env GUAC_INIT_SQL_URL if desired)
-GUAC_INIT_SQL_URL="${GUAC_INIT_SQL_URL:-https://raw.githubusercontent.com/cragr/quadstack/refs/heads/main/initdb.sql}"
+GUAC_INIT_SQL_URL="${GUAC_INIT_SQL_URL:-https://raw.githubusercontent.com/cragr/quadstack/refs/heads/n8n/initdb.sql}"
 
 # --- UI helpers -------------------------------------------------------------
 BOLD="$(tput bold 2>/dev/null || true)"
