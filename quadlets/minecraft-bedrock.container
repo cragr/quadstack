@@ -1,0 +1,33 @@
+[Unit]
+Description=Minecraft Bedrock Server
+After=network-online.target
+Wants=network-online.target
+
+[Container]
+ContainerName=minecraft-bedrock
+Image=docker.io/itzg/minecraft-bedrock-server:latest
+Volume={{INSTALL_DIR}}/minecraft-bedrock-server/data:/data:Z,U
+PublishPort=19132:19132/udp
+
+Environment=EULA=TRUE
+Environment=SERVER_NAME={{MC_SERVER_NAME}}
+Environment=GAMEMODE=survival
+Environment=DIFFICULTY=hard
+Environment=MAX_PLAYERS=20
+Environment=ALLOW_CHEATS=false
+Environment=ONLINE_MODE=true
+Environment=VIEW_DISTANCE=32
+Environment=LEVEL_NAME=Survival Games
+Environment=LEVEL_TYPE=DEFAULT
+Environment=OPS={{OPS_ID}}
+
+Environment=VERSION=LATEST
+
+Environment=TZ=America/New_York
+
+
+[Service]
+Restart=always
+
+[Install]
+WantedBy=default.target
