@@ -1,0 +1,26 @@
+[Unit]
+Description=Pi-hole
+Wants=network-online.target
+After=network-online.target
+
+[Container]
+ContainerName=pihole
+Image=docker.io/pihole/pihole:latest
+Volume={{INSTALL_DIR}}/pihole:/etc/pihole:Z,U
+
+# Because the "Appnet" podman network as DNS enabled port 53 is already bound
+# Specify the local hosts IP Address to bind 53 to that IP
+PublishPort={{HOST_IP_ADDRESS}}:53:53/tcp
+PublishPort={{HOST_IP_ADDRESS}}:53:53/udp
+PublishPort=8080:80
+
+# Environment
+Environment=TZ=America/New_York
+Environment=FTLCONF_webserver_api_password={{PIHOLE_WEB_PASSWORD}}
+Environment=FTLCONF_dns_listeningMode=all
+
+[Service]
+Restart=always
+
+[Install]
+WantedBy=default.target
