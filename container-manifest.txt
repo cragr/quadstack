@@ -8,3 +8,6 @@ https://raw.githubusercontent.com/cragr/quadstack/refs/heads/main/quadlets/pwpus
 https://raw.githubusercontent.com/cragr/quadstack/refs/heads/main/quadlets/guacd.container
 https://raw.githubusercontent.com/cragr/quadstack/refs/heads/main/quadlets/guacamole.container
 https://raw.githubusercontent.com/cragr/quadstack/refs/heads/main/quadlets/n8n.container
+https://raw.githubusercontent.com/cragr/quadstack/refs/heads/main/quadlets/pihole.container
+https://raw.githubusercontent.com/cragr/quadstack/refs/heads/main/quadlets/minecraft-bedrock.container
+https://raw.githubusercontent.com/cragr/quadstack/refs/heads/main/quadlets/minecraft-java.container
