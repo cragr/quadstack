@@ -1,7 +1,15 @@
+[Unit]
+Description=Apache Guacamole Web Application
+After=network-online.target postgresql.service
+Wants=network-online.target
+Requires=postgresql.service
+
 [Container]
 ContainerName=guacamole
 Image=docker.io/guacamole/guacamole:1.6.0
 Volume={{INSTALL_DIR}}/guacamole:/etc/guacamole:Z,U
+Network=appnet
+UserNS=auto
 
 # Point Guacamole at the guacd container by name (same default podman network)
 Environment=GUACD_HOSTNAME=guacd
@@ -28,10 +36,16 @@ Environment=OPENID_ISSUER=https://{{KEYCLOAK_URL}}/realms/{{REALM}}
 Environment=OPENID_CLIENT_ID=guacamole
 Environment=OPENID_REDIRECT_URI=https://{{GUACAMOLE_URL}}
 
-Network=appnet
+HealthCmd=["CMD-SHELL", "curl -f http://localhost:8080/guacamole/ || exit 1"]
+HealthInterval=30s
+HealthTimeout=10s
+HealthRetries=3
+HealthStartPeriod=60s
 
 [Service]
 Restart=always
+RestartSec=5
+NoNewPrivileges=true
 
 [Install]
 WantedBy=default.target

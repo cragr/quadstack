@@ -1,17 +1,31 @@
+[Unit]
+Description=pgAdmin 4 Database Management
+After=network-online.target
+Wants=network-online.target
+
 [Container]
 ContainerName=pgadmin
 Image=docker.io/dpage/pgadmin4:latest
 Volume={{INSTALL_DIR}}/pgadmin/data:/var/lib/pgadmin:Z,U
+Network=appnet
+UserNS=auto
 
 Environment=PGADMIN_DEFAULT_EMAIL={{PGADMIN_DEFAULT_EMAIL}}
 Environment=PGADMIN_DEFAULT_PASSWORD={{PGADMIN_DEFAULT_PASSWORD}}
 Environment=PGADMIN_DISABLE_POSTFIX=true
+Environment=PGADMIN_LISTEN_PORT=5050
 
-Network=appnet
+HealthCmd=["CMD-SHELL", "wget -qO- http://localhost:5050/misc/ping || exit 1"]
+HealthInterval=30s
+HealthTimeout=10s
+HealthRetries=3
+HealthStartPeriod=60s
 
 [Service]
-TimeoutStartSec=120
 Restart=always
+RestartSec=5
+TimeoutStartSec=120
+NoNewPrivileges=true
 
 [Install]
 WantedBy=default.target

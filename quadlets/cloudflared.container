@@ -1,13 +1,26 @@
+[Unit]
+Description=Cloudflare Tunnel
+After=network-online.target
+Wants=network-online.target
+
 [Container]
 ContainerName=cloudflared
 Image=docker.io/cloudflare/cloudflared:latest
 Network=appnet
+UserNS=auto
 
 Exec=tunnel run --token {{TUNNEL_TOKEN}}
+
+HealthCmd=["CMD-SHELL", "cloudflared tunnel info || exit 1"]
+HealthInterval=30s
+HealthTimeout=10s
+HealthRetries=3
+HealthStartPeriod=30s
 
 [Service]
 Restart=always
 RestartSec=2
+NoNewPrivileges=true
 
 [Install]
 WantedBy=default.target

@@ -1,8 +1,15 @@
+[Unit]
+Description=Password Pusher
+After=network-online.target postgresql.service
+Wants=network-online.target
+Requires=postgresql.service
+
 [Container]
 ContainerName=pwpush
 Image=docker.io/pglombardo/pwpush:latest
 Volume={{INSTALL_DIR}}/pwpush/storage:/opt/PasswordPusher/storage:Z,U
 Network=appnet
+# Note: Cannot use UserNS=auto - pwpush's Thruster proxy binds to port 80 internally
 
 # RequiresPostgres:
 Environment=DATABASE_URL=postgresql://{{PWPUSH_DB_USER}}:{{PWPUSH_DB_PASSWORD}}@postgresql:5432/{{PWPASS_DB_NAME}}
@@ -20,8 +27,16 @@ Environment=PWP__FILES__RETRIEVAL_STEP_DEFAULT=true
 Environment=PWP__ENABLE_URL_PUSHES=true
 Environment=PWP__DISABLE_SIGNUPS=true
 
+HealthCmd=["CMD-SHELL", "curl -f http://localhost:5100/ || exit 1"]
+HealthInterval=30s
+HealthTimeout=10s
+HealthRetries=3
+HealthStartPeriod=60s
+
 [Service]
 Restart=always
+RestartSec=5
+NoNewPrivileges=true
 
 [Install]
 WantedBy=default.target

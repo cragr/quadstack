@@ -1,5 +1,5 @@
 [Unit]
-Description=Pi-hole
+Description=Pi-hole DNS Server
 Wants=network-online.target
 After=network-online.target
 
@@ -19,8 +19,16 @@ Environment=TZ=America/New_York
 Environment=FTLCONF_webserver_api_password={{PIHOLE_WEB_PASSWORD}}
 Environment=FTLCONF_dns_listeningMode=all
 
+HealthCmd=["CMD-SHELL", "dig +short +norecurse +retry=0 @127.0.0.1 pi.hole || exit 1"]
+HealthInterval=30s
+HealthTimeout=10s
+HealthRetries=3
+HealthStartPeriod=60s
+
 [Service]
 Restart=always
+RestartSec=5
+NoNewPrivileges=true
 
 [Install]
 WantedBy=default.target

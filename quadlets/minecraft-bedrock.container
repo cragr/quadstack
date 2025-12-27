@@ -8,6 +8,7 @@ ContainerName=minecraft-bedrock
 Image=docker.io/itzg/minecraft-bedrock-server:latest
 Volume={{INSTALL_DIR}}/minecraft-bedrock-server/data:/data:Z,U
 PublishPort=19132:19132/udp
+UserNS=auto
 
 Environment=EULA=TRUE
 Environment=SERVER_NAME={{MC_SERVER_NAME}}
@@ -25,9 +26,18 @@ Environment=VERSION=LATEST
 
 Environment=TZ=America/New_York
 
+HealthCmd=["CMD-SHELL", "mc-monitor status-bedrock --host 127.0.0.1 --port 19132 || exit 1"]
+HealthInterval=30s
+HealthTimeout=10s
+HealthRetries=3
+HealthStartPeriod=120s
 
 [Service]
 Restart=always
+RestartSec=5
+TimeoutStartSec=180
+TimeoutStopSec=60
+NoNewPrivileges=true
 
 [Install]
 WantedBy=default.target

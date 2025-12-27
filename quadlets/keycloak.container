@@ -1,7 +1,14 @@
+[Unit]
+Description=Keycloak Identity and Access Management
+After=network-online.target postgresql.service
+Wants=network-online.target
+Requires=postgresql.service
+
 [Container]
 ContainerName=keycloak
 Image=quay.io/keycloak/keycloak:26.3.5
 Network=appnet
+UserNS=auto
 
 # Persist Keycloak data (sessions, themes, etc. still rely on DB for canonical state)
 Volume={{INSTALL_DIR}}/keycloak/data:/opt/keycloak/data:Z,U
@@ -21,7 +28,6 @@ Environment=KC_DB_URL_DATABASE={{KEYCLOAK_DB_NAME}}
 Environment=KC_DB_USERNAME={{KEYCLOAK_DB_USERNAME}}
 Environment=KC_DB_PASSWORD={{KEYCLOAK_DB_PASSWORD}}
 
-
 # Bootstrap admin on first start
 Environment=KEYCLOAK_ADMIN={{KEYCLOAK_INITIAL_USERNAME}}
 Environment=KEYCLOAK_ADMIN_PASSWORD={{KEYCLOAK_INITIAL_PASSWORD}}
@@ -29,9 +35,17 @@ Environment=KEYCLOAK_ADMIN_PASSWORD={{KEYCLOAK_INITIAL_PASSWORD}}
 # Start with explicit flags (recommended)
 Exec=start --http-enabled=true
 
+HealthCmd=["CMD-SHELL", "exec 3<>/dev/tcp/localhost/8080"]
+HealthInterval=30s
+HealthTimeout=10s
+HealthRetries=3
+HealthStartPeriod=120s
+
 [Service]
 Restart=always
+RestartSec=5
 TimeoutStartSec=900
+NoNewPrivileges=true
 
 [Install]
 WantedBy=default.target

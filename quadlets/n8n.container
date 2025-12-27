@@ -1,5 +1,5 @@
 [Unit]
-Description=n8n container
+Description=n8n Workflow Automation
 Requires=postgresql.service
 After=postgresql.service network-online.target
 Wants=network-online.target
@@ -8,6 +8,7 @@ Wants=network-online.target
 ContainerName=n8n
 Image=docker.n8n.io/n8nio/n8n
 Network=appnet
+UserNS=auto
 
 # Persist n8n data
 Volume={{INSTALL_DIR}}/n8n:/home/node/.n8n:Z,U
@@ -24,9 +25,17 @@ Environment=DB_POSTGRESDB_DATABASE={{N8N_DB_NAME}}
 Environment=DB_POSTGRESDB_USER={{N8N_DB_USERNAME}}
 Environment=DB_POSTGRESDB_PASSWORD={{N8N_DB_PASSWORD}}
 
+HealthCmd=["CMD-SHELL", "wget -qO- http://localhost:5678/healthz || exit 1"]
+HealthInterval=30s
+HealthTimeout=10s
+HealthRetries=3
+HealthStartPeriod=60s
+
 [Service]
 Restart=always
+RestartSec=5
 TimeoutStartSec=900
+NoNewPrivileges=true
 
 [Install]
 WantedBy=default.target

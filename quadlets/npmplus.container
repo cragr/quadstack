@@ -1,3 +1,8 @@
+[Unit]
+Description=Nginx Proxy Manager Plus
+After=network-online.target
+Wants=network-online.target
+
 [Container]
 ContainerName=npmplus
 Image=docker.io/zoeyvid/npmplus:latest
@@ -7,8 +12,16 @@ Volume={{INSTALL_DIR}}/npmplus:/data:Z,U
 Environment=TZ=America/New_York
 Network=appnet
 
+HealthCmd=["CMD-SHELL", "curl -f http://localhost:81/ || exit 1"]
+HealthInterval=30s
+HealthTimeout=10s
+HealthRetries=3
+HealthStartPeriod=60s
+
 [Service]
 Restart=always
+RestartSec=5
+NoNewPrivileges=true
 
 [Install]
 WantedBy=default.target

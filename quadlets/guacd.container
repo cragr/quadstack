@@ -1,12 +1,25 @@
+[Unit]
+Description=Apache Guacamole Daemon (guacd)
+After=network-online.target
+Wants=network-online.target
+
 [Container]
 ContainerName=guacd
 Image=docker.io/guacamole/guacd:latest
 Volume={{INSTALL_DIR}}/guacd:/etc/guacamole:Z,U
-
 Network=appnet
+UserNS=auto
+
+HealthCmd=["CMD-SHELL", "nc -z localhost 4822 || exit 1"]
+HealthInterval=30s
+HealthTimeout=10s
+HealthRetries=3
+HealthStartPeriod=30s
 
 [Service]
 Restart=always
+RestartSec=5
+NoNewPrivileges=true
 
 [Install]
 WantedBy=default.target

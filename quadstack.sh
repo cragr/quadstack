@@ -28,20 +28,24 @@ usage() {
 Quadlet Installer
 
 Usage:
-  install-quadlets.sh [--manifest <URL_or_path>] [--install-dir <path>] [--non-interactive]
-                      [--select "<pat1,pat2,...>"] [--var KEY=VALUE ...]
+  quadstack.sh [--manifest <URL_or_path>] [--install-dir <path>] [--non-interactive]
+               [--select "<pat1,pat2,...>"] [--var KEY=VALUE ...]
+               [--quadlet-dir <path>] [--dry-run] [--uninstall]
 
 Options:
   --manifest        URL (raw) or local path to a manifest listing .container sources.
                     Entries may be separated by newlines OR spaces.
                     Optional label per entry:  URL|install-name.container
   --install-dir     Path injected into templates (default: /opt/containers).
+  --quadlet-dir     Directory to install quadlets (default: /etc/containers/systemd).
   --non-interactive Run without prompts. Requires --select and any needed --var KEY=VALUE.
   --select          Comma-separated numbers/ranges/filenames (or "all") to install.
   --var KEY=VALUE   Provide template variable(s) (repeatable). Examples:
                       --var PWP__OVERRIDE_BASE_URL=https://pwpush.example.com
                       --var GATEWAY_HOST_PORT=8080
                       --var APP_HOST_PORT=5100
+  --dry-run         Show what would be done without making changes.
+  --uninstall       Remove installed quadlets and optionally stop services.
 
 Env vars:
   APPNET_NAME         Podman network ensured at start (default: "appnet")
@@ -56,17 +60,23 @@ EOF
 # --- CLI parsing ------------------------------------------------------------
 MANIFEST=""
 INSTALL_DIR="${DEFAULT_INSTALL_DIR}"
+QUADLET_DIR="/etc/containers/systemd"
 NON_INTERACTIVE=0
 SELECT_SPEC=""
+DRY_RUN=0
+UNINSTALL_MODE=0
 VARS=()  # KEY=VALUE pairs for token injection
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --manifest) MANIFEST="${2:-}"; shift 2 ;;
     --install-dir) INSTALL_DIR="${2:-}"; shift 2 ;;
+    --quadlet-dir) QUADLET_DIR="${2:-}"; shift 2 ;;
     --non-interactive) NON_INTERACTIVE=1; shift ;;
     --select) SELECT_SPEC="${2:-}"; shift 2 ;;
     --var) [[ -n "${2:-}" ]] || die "--var requires KEY=VALUE"; VARS+=("$2"); shift 2 ;;
+    --dry-run) DRY_RUN=1; shift ;;
+    --uninstall) UNINSTALL_MODE=1; shift ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Unknown option: $1" >&2; usage; exit 1 ;;
   esac
@@ -75,6 +85,106 @@ done
 require_root
 check_systemd
 check_podman
+
+# --- Dry-run helper ---------------------------------------------------------
+run_cmd() {
+  if [[ $DRY_RUN -eq 1 ]]; then
+    echo "[DRY-RUN] Would run: $*"
+    return 0
+  fi
+  "$@"
+}
+
+# --- Uninstall mode ---------------------------------------------------------
+do_uninstall() {
+  echo "${BOLD}Uninstall Mode${RESET}"
+  echo "Scanning for installed quadlets in ${QUADLET_DIR}..."
+
+  local containers=()
+  if [[ -d "$QUADLET_DIR" ]]; then
+    mapfile -t containers < <(find "$QUADLET_DIR" -maxdepth 1 -name '*.container' -type f 2>/dev/null | sort)
+  fi
+
+  if [[ ${#containers[@]} -eq 0 ]]; then
+    echo "No .container files found in ${QUADLET_DIR}."
+    exit 0
+  fi
+
+  echo "Found quadlets:"
+  for i in "${!containers[@]}"; do
+    local bn; bn="$(basename "${containers[$i]}")"
+    printf "  [%d] %s\n" "$((i+1))" "$bn"
+  done
+
+  echo
+  if [[ $NON_INTERACTIVE -eq 0 ]]; then
+    read -rp "Select by number/comma, ranges (e.g. 1,3-4), or 'all' to remove: " input
+  else
+    input="${SELECT_SPEC:-all}"
+  fi
+  [[ -z "$input" ]] && die "Nothing selected."
+
+  local to_remove=()
+  if [[ "$input" == "all" ]]; then
+    to_remove=("${containers[@]}")
+  else
+    IFS=',' read -r -a parts <<< "$input"
+    for part in "${parts[@]}"; do
+      part="$(echo "$part" | xargs)"; [[ -z "$part" ]] && continue
+      if [[ "$part" =~ ^[0-9]+-[0-9]+$ ]]; then
+        local start="${part%-*}" end="${part#*-}"
+        for ((n=start;n<=end;n++)); do
+          local idx=$((n-1))
+          [[ $idx -ge 0 && $idx -lt ${#containers[@]} ]] && to_remove+=("${containers[$idx]}")
+        done
+      elif [[ "$part" =~ ^[0-9]+$ ]]; then
+        local idx=$((part-1))
+        [[ $idx -ge 0 && $idx -lt ${#containers[@]} ]] && to_remove+=("${containers[$idx]}")
+      fi
+    done
+  fi
+
+  [[ ${#to_remove[@]} -eq 0 ]] && die "Selection matched nothing."
+
+  echo
+  echo "Will remove:"
+  for f in "${to_remove[@]}"; do
+    echo "  - $(basename "$f")"
+  done
+
+  if [[ $NON_INTERACTIVE -eq 0 ]]; then
+    read -rp "Stop services and remove these quadlets? [y/N]: " confirm
+    case "${confirm,,}" in y|yes) ;; *) echo "Aborted."; exit 0 ;; esac
+  fi
+
+  # Stop services first
+  for f in "${to_remove[@]}"; do
+    local bn; bn="$(basename "$f")"
+    local svc="${bn%.container}.service"
+    echo "Stopping ${svc}..."
+    run_cmd systemctl stop "$svc" 2>/dev/null || true
+    run_cmd systemctl disable "$svc" 2>/dev/null || true
+  done
+
+  # Remove quadlet files
+  for f in "${to_remove[@]}"; do
+    echo "Removing ${f}..."
+    run_cmd rm -f "$f"
+  done
+
+  # Reload systemd
+  echo "Reloading systemd daemon..."
+  run_cmd systemctl daemon-reload
+
+  echo
+  echo "${BOLD}Uninstall complete.${RESET}"
+  echo "Note: Data directories under ${INSTALL_DIR} were NOT removed."
+  echo "Remove them manually if desired."
+  exit 0
+}
+
+# Handle uninstall mode early
+[[ $UNINSTALL_MODE -eq 1 ]] && do_uninstall
 
 # --- Ensure appnet exists (beginning of the script) -------------------------
 ensure_appnet_network() {
@@ -86,16 +196,23 @@ ensure_appnet_network() {
     return 0
   fi
 
+  if [[ $DRY_RUN -eq 1 ]]; then
+    echo "[DRY-RUN] Would create network '$net'"
+    return 0
+  fi
+
   echo "Creating network '$net' ..."
   if ! out="$(podman network create "$net" 2>&1)"; then
-    echo "Warning: failed to create network '$net':"; echo "$out" | sed 's/^/  /'
+    echo "Warning: failed to create network '$net':"
+    printf '  %s\n' "$out"
     # Common cause: subnet overlap — try a safe fallback
     if echo "$out" | grep -Eqi 'subnet|overlap|already.*exists|already.*defined'; then
       if out2="$(podman network create --subnet 10.92.0.0/24 "$net" 2>&1)"; then
         echo "  created '$net' with subnet 10.92.0.0/24."
         return 0
       else
-        echo "Warning: fallback also failed:"; echo "$out2" | sed 's/^/  /'
+        echo "Warning: fallback also failed:"
+        printf '  %s\n' "$out2"
       fi
     fi
     # Continue; unit starts will surface any issues.
@@ -173,6 +290,37 @@ while IFS= read -r raw; do
 done < "$MF"
 
 [[ ${#SRC_PATH[@]} -gt 0 ]] || die "No valid .container entries found (check manifest formatting)."
+
+# --- Credentials file -------------------------------------------------------
+CREDENTIALS_FILE="${INSTALL_DIR}/.credentials"
+CREDENTIALS_WRITTEN=0
+
+write_credential() {
+  local service="$1" db="$2" user="$3" pass="$4"
+  if [[ $DRY_RUN -eq 1 ]]; then
+    echo "[DRY-RUN] Would write credentials for ${service} to ${CREDENTIALS_FILE}"
+    return 0
+  fi
+  if [[ $CREDENTIALS_WRITTEN -eq 0 ]]; then
+    mkdir -p "$(dirname "$CREDENTIALS_FILE")"
+    cat > "$CREDENTIALS_FILE" <<EOF
+# QuadStack Database Credentials
+# Generated: $(date -Iseconds)
+# WARNING: Contains sensitive passwords - protect this file!
+
+EOF
+    chmod 0600 "$CREDENTIALS_FILE"
+    CREDENTIALS_WRITTEN=1
+  fi
+  cat >> "$CREDENTIALS_FILE" <<EOF
+[${service}]
+database=${db}
+username=${user}
+password=${pass}
+
+EOF
+  echo "  Credentials saved to ${CREDENTIALS_FILE}"
+}
 
 # --- Token storage (persist across loops) -----------------------------------
 declare -A TOKVAL; TOKVAL["INSTALL_DIR"]="$INSTALL_DIR"
@@ -273,7 +421,20 @@ choose_files() {
 sql_q_ident()   { local s="$1"; s="${s//\"/\"\"}"; printf '"%s"' "$s"; }
 sql_q_literal() { local s="$1"; s="${s//\'/\'\'}"; printf "'%s'" "$s"; }
 pg_container_running() { podman inspect -f '{{.State.Running}}' "$PG_CONTAINER_NAME" 2>/dev/null | grep -qi true; }
-pg_wait_ready() { local tries=30; while (( tries-- > 0 )); do podman exec "$PG_CONTAINER_NAME" bash -lc 'pg_isready -h 127.0.0.1 -U postgres >/dev/null 2>&1' && return 0; sleep 2; done; return 1; }
+pg_wait_ready() {
+  local tries="${1:-60}"  # Default 60 tries = 2 minutes
+  local interval=2
+  echo "Waiting for PostgreSQL to be ready (up to $((tries * interval))s)..."
+  while (( tries-- > 0 )); do
+    if podman exec "$PG_CONTAINER_NAME" bash -lc 'pg_isready -h 127.0.0.1 -U postgres >/dev/null 2>&1'; then
+      echo "PostgreSQL is ready."
+      return 0
+    fi
+    sleep $interval
+  done
+  echo "PostgreSQL did not become ready in time."
+  return 1
+}
 pg_role_exists() { local user_lit; user_lit="$(sql_q_literal "$1")"; podman exec "$PG_CONTAINER_NAME" bash -lc "psql -U postgres -d postgres -Atqc \"SELECT 1 FROM pg_roles WHERE rolname = ${user_lit}\"" | grep -q 1; }
 pg_db_exists() { local db_lit; db_lit="$(sql_q_literal "$1")"; podman exec "$PG_CONTAINER_NAME" bash -lc "psql -U postgres -d postgres -Atqc \"SELECT 1 FROM pg_database WHERE datname = ${db_lit}\"" | grep -q 1; }
 pg_create_user_db() {
@@ -420,9 +581,13 @@ run_one_round() {
     read -rp "  Database name [${defdb}]: " db;   db="${db:-$defdb}"
     read -rp "  Username      [${defuser}]: " usr; usr="${usr:-$defuser}"
     read -srp "  Password (leave blank to autogenerate): " pw; echo
-    if [[ -z "$pw" ]]; then pw="$(tr -dc 'A-Za-z0-9' </dev/urandom | head -c 20)"; echo "  Generated password: ${pw}"; fi
+    if [[ -z "$pw" ]]; then
+      pw="$(tr -dc 'A-Za-z0-9' </dev/urandom | head -c 20)"
+      echo "  Password auto-generated (will be saved to credentials file)"
+    fi
 
     PG_LABEL+=("$short"); PG_DB+=("$db"); PG_USER+=("$usr"); PG_PASS+=("$pw")
+    write_credential "$short" "$db" "$usr" "$pw"
   done
   [[ ${#PG_DB[@]} -eq 0 ]] && echo "No PG requirements detected in selected Quadlets."
 
@@ -442,32 +607,57 @@ run_one_round() {
   mapfile -t FOUND_TOKENS < <(extract_tokens "${TMP_FILES_FOR_TOKEN_SCAN[@]}")
   prompt_for_missing_tokens "${FOUND_TOKENS[@]}"
 
-  local TARGET_DIR="/etc/containers/systemd"; mkdir -p "$TARGET_DIR"
-  local STAMP="$(date +%Y%m%d-%H%M%S)"; local BACKUP_DIR="${TARGET_DIR}.bak-${STAMP}"; mkdir -p "$BACKUP_DIR"
+  local TARGET_DIR="$QUADLET_DIR"
+  run_cmd mkdir -p "$TARGET_DIR"
+  local STAMP
+  STAMP="$(date +%Y%m%d-%H%M%S)"
+  local BACKUP_DIR="${TARGET_DIR}.bak-${STAMP}"
+  mkdir -p "$BACKUP_DIR"
 
   local TMP_UNITS=()
   for i in "${!TMP_FILES_FOR_TOKEN_SCAN[@]}"; do
     local tmp="${TMP_FILES_FOR_TOKEN_SCAN[$i]}"; local install_bn="${DEST_BASENAMES[$i]}"
     sed -i -e "s#{{INSTALL_DIR}}#${INSTALL_DIR//\//\\/}#g" -e "s#%%INSTALL_DIR%%#${INSTALL_DIR//\//\\/}#g" "$tmp"
     for key in "${!TOKVAL[@]}"; do val="${TOKVAL[$key]}"; esc_val="${val//\//\\/}"; sed -i -e "s#{{$key}}#${esc_val}#g" "$tmp"; done
-    create_host_dirs_from_unit "$tmp"
+    if [[ $DRY_RUN -eq 0 ]]; then
+      create_host_dirs_from_unit "$tmp"
+    else
+      echo "[DRY-RUN] Would create host directories from ${install_bn}"
+    fi
     local dest="${TARGET_DIR}/${install_bn}"
-    if [[ -f "$dest" ]]; then echo "  Backing up existing ${install_bn} -> ${BACKUP_DIR}/${install_bn}"; mv -f "$dest" "${BACKUP_DIR}/${install_bn}"; fi
-    install -m 0644 "$tmp" "$dest"; TMP_UNITS+=("$dest")
+    if [[ -f "$dest" ]]; then
+      echo "  Backing up existing ${install_bn} -> ${BACKUP_DIR}/${install_bn}"
+      run_cmd mv -f "$dest" "${BACKUP_DIR}/${install_bn}"
+    fi
+    if [[ $DRY_RUN -eq 1 ]]; then
+      echo "[DRY-RUN] Would install ${install_bn} to ${dest}"
+    else
+      install -m 0644 "$tmp" "$dest"
+    fi
+    TMP_UNITS+=("$dest")
   done
 
   # ---- Reload (phase 1) ----
   echo
   echo "Reloading systemd daemon (phase 1) ..."
-  systemctl daemon-reload
+  run_cmd systemctl daemon-reload
 
   # ---- Start PostgreSQL (if present) and provision DBs BEFORE app services ----
   if systemctl list-unit-files | grep -q '^postgresql\.service'; then
     echo "Starting ${PG_CONTAINER_NAME}.service (PostgreSQL) ..."
-    systemctl start "${PG_CONTAINER_NAME}.service" || true
+    run_cmd systemctl start "${PG_CONTAINER_NAME}.service" || true
   fi
 
-  if pg_container_running && pg_wait_ready; then
+  if [[ $DRY_RUN -eq 1 ]]; then
+    if [[ ${#PG_DB[@]} -gt 0 ]]; then
+      echo
+      echo "[DRY-RUN] Would provision PostgreSQL database(s):"
+      for i in "${!PG_DB[@]}"; do
+        local label="${PG_LABEL[$i]}"; local db="${PG_DB[$i]}"; local usr="${PG_USER[$i]}"
+        echo "  -> ${label}: ${db} / ${usr}"
+      done
+    fi
+  elif pg_container_running && pg_wait_ready 60; then
     if [[ ${#PG_DB[@]} -gt 0 ]]; then
       echo
       echo "${BOLD}Provisioning PostgreSQL database(s) before starting app services...${RESET}"
@@ -493,7 +683,7 @@ run_one_round() {
 
   # ---- Reload (phase 2) to pick up oneshot (if added) ----
   echo "Reloading systemd daemon (phase 2) ..."
-  systemctl daemon-reload
+  run_cmd systemctl daemon-reload
 
   # ---- Start then enable selected services ----
   echo
@@ -501,6 +691,12 @@ run_one_round() {
   local STARTED=()
   for bn in "${DEST_BASENAMES[@]}"; do
     local svc="${bn%.container}.service"
+
+    if [[ $DRY_RUN -eq 1 ]]; then
+      echo "[DRY-RUN] Would start and enable $svc"
+      STARTED+=("$svc")
+      continue
+    fi
 
     if systemctl start "$svc"; then
       STARTED+=("$svc")

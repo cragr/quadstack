@@ -1,10 +1,15 @@
+[Unit]
+Description=PostgreSQL Database Server
+After=network-online.target
+Wants=network-online.target
+
 [Container]
 ContainerName=postgresql
 Image=quay.io/sclorg/postgresql-16-c10s:latest
 Volume={{INSTALL_DIR}}/postgresql/data:/var/lib/pgsql/data:Z,U
 PublishPort=5432:5432
-
 Network=appnet
+UserNS=auto
 
 Environment=POSTGRESQL_USER=admin
 Environment=POSTGRESQL_PASSWORD={{POSTGRESQL_PASSWORD}}
@@ -12,15 +17,17 @@ Environment=POSTGRESQL_ADMIN_PASSWORD={{POSTGRESQL_ADMIN_PASSWORD}}
 Environment=POSTGRESQL_DATABASE=default
 
 # Healthcheck (Quadlet/Podman)
-HealthCmd=["CMD-SHELL","pg_isready"]
+HealthCmd=["CMD-SHELL", "pg_isready"]
 HealthInterval=10s
 HealthTimeout=5s
 HealthRetries=5
 HealthStartPeriod=30s
 
 [Service]
-TimeoutStartSec=180
 Restart=always
+RestartSec=5
+TimeoutStartSec=180
+NoNewPrivileges=true
 
 [Install]
 WantedBy=default.target
