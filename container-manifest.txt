@@ -11,3 +11,4 @@ https://raw.githubusercontent.com/cragr/quadstack/refs/heads/main/quadlets/n8n.c
 https://raw.githubusercontent.com/cragr/quadstack/refs/heads/main/quadlets/pihole.container
 https://raw.githubusercontent.com/cragr/quadstack/refs/heads/main/quadlets/minecraft-bedrock.container
 https://raw.githubusercontent.com/cragr/quadstack/refs/heads/main/quadlets/minecraft-java.container
+https://raw.githubusercontent.com/cragr/quadstack/refs/heads/main/quadlets/rancher.container
