@@ -1,0 +1,31 @@
+[Unit]
+Description=Rancher container
+Requires=postgresql.service
+After=postgresql.service network-online.target
+Wants=network-online.target
+
+[Container]
+ContainerName=rancher
+Image=docker.io/rancher/rancher:stable
+Network=appnet
+
+# Persist Rancher data
+Volume={{INSTALL_DIR}}/rancher:/var/lib/rancher:Z,U
+
+# RequiresPostgres:
+# Database (PostgreSQL)
+Environment=CATTLE_DB_CATTLE_POSTGRES_HOST=postgresql
+Environment=CATTLE_DB_CATTLE_POSTGRES_PORT=5432
+Environment=CATTLE_DB_CATTLE_POSTGRES_NAME={{RANCHER_DB_NAME}}
+Environment=CATTLE_DB_CATTLE_POSTGRES_USER={{RANCHER_DB_USERNAME}}
+Environment=CATTLE_DB_CATTLE_POSTGRES_PASSWORD={{RANCHER_DB_PASSWORD}}
+
+# Audit logging (level 1 = basic)
+Environment=AUDIT_LEVEL=1
+
+[Service]
+Restart=always
+TimeoutStartSec=900
+
+[Install]
+WantedBy=default.target
