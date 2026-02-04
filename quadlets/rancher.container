@@ -8,7 +8,7 @@ Wants=network-online.target
 ContainerName=rancher
 Image=docker.io/rancher/rancher:stable
 Network=appnet
-Privileged=true
+PodmanArgs=--privileged
 
 # Persist Rancher data
 Volume={{INSTALL_DIR}}/rancher:/var/lib/rancher:Z,U
